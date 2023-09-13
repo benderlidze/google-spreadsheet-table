@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <title>Document</title>
+</head>
+
+<body>
+    <script>
+        const empty = [];
+        let GEO = [];
+        let main = [];
+
+        d3.csv("Export060223.csv")
+            .then(j => {
+                console.log('j', j);
+                const array = j;
+                (async () => {
+                    for (let index = 0; index < array.length; index++) {
+                        console.log('array[index]',array[index]);
+                        const e = encodeURIComponent(array[index]['Property Address'].trim()+', '+array[index]['Zip'].trim());
+                        const url = `https://maps.googleapis.com/maps/api/geocode/json?&address=${e}&key=AIzaSyDaT_HTZwFojXmvYIhwWudK00vFXzMmOKc`
+                        await fetch(url)
+                            .then(i => i.json())
+                            .then(res => {
+                                console.log('results', index, url);
+                                GEO.push({
+                                    ...array[index],
+                                    "geocoded": res
+                                })
+                                if (res.results.length > 0) {
+                                    array[index].Lat = res.results[0].geometry.location.lat;
+                                    array[index].Lon = res.results[0].geometry.location.lng;
+                                }
+                            })
+                    }
+                    console.log('array', array);
+                })();
+                //*/
+            })
+
+        downloadCSVFromJson = (filename, arrayOfJson) => {
+            // convert JSON to CSV
+            const replacer = (key, value) => value === null ? '' : value // specify how you want to handle null values here
+            const header = Object.keys(arrayOfJson[0])
+            let csv = arrayOfJson.map(row => header.map(fieldName =>
+                JSON.stringify(row[fieldName], replacer)).join(','))
+            csv.unshift(header.join(','))
+            csv = csv.join('\r\n')
+
+            // Create link and download
+            var link = document.createElement('a');
+            link.setAttribute('href', 'data:text/csv;charset=utf-8,%EF%BB%BF' + encodeURIComponent(csv));
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+
+        const saveTemplateAsFile = (filename, dataObjToWrite) => {
+            const blob = new Blob([JSON.stringify(dataObjToWrite)], { type: "text/json" });
+            const link = document.createElement("a");
+
+            link.download = filename;
+            link.href = window.URL.createObjectURL(blob);
+            link.dataset.downloadurl = ["text/json", link.download, link.href].join(":");
+
+            const evt = new MouseEvent("click", {
+                view: window,
+                bubbles: true,
+                cancelable: true,
+            });
+
+            link.dispatchEvent(evt);
+            link.remove()
+        };
+    </script>
+</body>
+
+</html>

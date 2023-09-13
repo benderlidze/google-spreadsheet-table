@@ -1,0 +1,186 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>Drawing Tools</title>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+</head>
+
+<style>
+    html,
+    body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        font-family: Arial, Helvetica, sans-serif;
+    }
+
+    #poly-info {
+        margin: 10px;
+        padding: 10px;
+        border: 1px solid #333;
+
+    }
+
+    .search {
+        margin-top: 10px;
+        margin-left: 10px;
+        margin-right: 10px;
+        width: 300px;
+        height: 40px;
+        font-size: 16px;
+        padding-left: 10px;
+        border-radius: 5px;
+        border: 1px solid #333;
+        outline: none;
+        box-shadow: none;
+        font-family: Arial, Helvetica, sans-serif;
+        font-weight: 400;
+    }
+
+    .draw-button {
+        margin-top: 10px;
+        margin-left: 10px;
+        margin-right: 10px;
+        width: 100px;
+        height: 44px;
+        font-size: 16px;
+        padding-left: 10px;
+        border-radius: 5px;
+        border: 1px solid #333;
+        outline: none;
+        box-shadow: none;
+        font-family: Arial, Helvetica, sans-serif;
+        font-weight: 400;
+        cursor: pointer;
+    }
+
+    .remove-button {
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        border: 1px solid #333;
+        background-color: white;
+        padding: 3px;
+        border-radius: 5px;
+    }
+
+    #map {
+        height: 50vh;
+        width: 100%;
+    }
+
+    #table {
+        height: 50vh;
+        overflow: auto;
+    }
+
+    .container {
+        display: flex;
+        width: 100%;
+        height: 100vh;
+        flex-direction: column;
+    }
+
+    .tr {
+        cursor: pointer;
+    }
+
+    .tr:hover {
+        background-color: #ddd;
+    }
+</style>
+
+<body>
+
+    <div class="container">
+        <div id="map"></div>
+        <div id="table"></div>
+    </div>
+
+    <script>
+        let map;
+        let editablePolygon;
+
+        const areas = document.getElementById("areas");
+
+        const allShapes = new Proxy([], {
+            set: function (target, key, value) {
+                target[key] = value;
+                updateArea();
+                return true;
+            },
+        });
+
+        function initMap() {
+            map = new google.maps.Map(document.getElementById("map"), {
+                center: { lat: -34.45854415667353, lng: 150.81064036238521 },
+                zoom: 19,
+                mapTypeId: google.maps.MapTypeId.HYBRID,
+                tilt: 0,
+                disableDefaultUI: true,
+                zoomControl: true,
+            });
+            const input = document.createElement("input");
+            input.className = "search";
+            input.type = "text";
+            input.placeholder = "Search Address";
+            map.controls[google.maps.ControlPosition.TOP_LEFT].push(input);
+            const autocomplete = new google.maps.places.Autocomplete(input);
+            google.maps.event.addListener(autocomplete, "place_changed", function (e) {
+                var place = autocomplete.getPlace();
+                const loc = place.geometry.location;
+                map.setCenter(place.geometry.location);
+                map.setZoom(16);
+            });
+
+
+            d3.csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vQ_hNbj7zJ-YA371kNniCmzHTHN8WIbRcgLQqWQLJAGe5YDMpp3wvSCd91gOaSi51h-93tWxFPl10wM/pub?output=csv")
+                .then(data => {
+                    console.log('d', data);
+                    const table = document.createElement('table');
+                    data.forEach(row => {
+                        const tr = createRow(row);
+                        table.appendChild(tr);
+                    })
+                    document.getElementById('table').appendChild(table);
+                })
+
+        }
+
+        function createRow(row) {
+            const tr = document.createElement('tr');
+            tr.className = 'tr';
+            Object.keys(row).forEach(key => {
+                const td = document.createElement('td');
+                td.innerHTML = row[key];
+                tr.appendChild(td);
+            })
+
+            tr.addEventListener('click', () => {
+                console.log('row', row);
+                const lat = parseFloat(row['Lat']);
+                const lng = parseFloat(row['Lon']);
+                map.setCenter({ lat, lng });
+                map.setZoom(19);
+            })
+
+            return tr;
+        }
+
+
+
+        window.initMap = initMap;
+
+    </script>
+
+    <script
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDaT_HTZwFojXmvYIhwWudK00vFXzMmOKc&callback=initMap&libraries=places,drawing,geometry&v=weekly"
+        async></script>
+
+</body>
+
+</html>
